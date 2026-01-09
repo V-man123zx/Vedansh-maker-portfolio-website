@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, X, Link, Plus, GripVertical } from "lucide-react"
-import { uploadProjectImage } from "@/lib/actions/upload"
 
 interface GalleryUploadProps {
   images: string[]
@@ -38,9 +37,16 @@ export function GalleryUpload({ images, onChange, maxImages = 10 }: GalleryUploa
       try {
         const formData = new FormData()
         formData.append("file", file)
-        const url = await uploadProjectImage(formData)
-        if (url) {
-          newUrls.push(url)
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.url) {
+          newUrls.push(result.url)
         }
       } catch (error) {
         console.error("Upload failed:", error)

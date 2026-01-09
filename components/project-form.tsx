@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,9 +13,9 @@ import type { Project, ProjectInsert } from "@/types/project"
 
 interface ProjectFormProps {
   project?: Project
-  onSubmit: (data: ProjectInsert) => Promise<void>
+  onSubmit: (project: ProjectInsert) => Promise<void>
   onCancel: () => void
-  isLoading?: boolean
+  isLoading: boolean
 }
 
 const DEFAULT_CATEGORIES = [
@@ -27,6 +26,7 @@ const DEFAULT_CATEGORIES = [
   "Robotics",
   "IoT",
   "Woodworking",
+  "ICR247",
   "Other",
 ]
 

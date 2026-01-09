@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, X, ImageIcon, Link } from "lucide-react"
-import { uploadProjectImage } from "@/lib/actions/upload"
 
 interface ImageUploadProps {
   value: string
@@ -41,11 +40,18 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
     try {
       const formData = new FormData()
       formData.append("file", file)
-      const url = await uploadProjectImage(formData)
-      if (url) {
-        onChange(url)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.url) {
+        onChange(result.url)
       } else {
-        alert("Failed to upload image")
+        alert(result.error || "Failed to upload image")
       }
     } catch (error) {
       console.error("Upload failed:", error)
