@@ -14,5 +14,7 @@ export interface Project {
   updated_at: string
 }
 
-export type ProjectInsert = Omit<Project, "id" | "created_at" | "updated_at">
+export type ProjectInsert = Omit<Project, "id" | "updated_at"> & {
+  created_at?: string
+}
 export type ProjectUpdate = Partial<ProjectInsert>

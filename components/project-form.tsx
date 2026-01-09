@@ -30,6 +30,11 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ]
 
+function formatDateForInput(dateString: string | undefined): string {
+  if (!dateString) return new Date().toISOString().split("T")[0]
+  return new Date(dateString).toISOString().split("T")[0]
+}
+
 export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectFormProps) {
   const [title, setTitle] = useState(project?.title || "")
   const [description, setDescription] = useState(project?.description || "")
@@ -43,6 +48,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
   const [githubUrl, setGithubUrl] = useState(project?.github_url || "")
   const [liveUrl, setLiveUrl] = useState(project?.live_url || "")
   const [content, setContent] = useState(project?.content || "")
+  const [createdAt, setCreatedAt] = useState(formatDateForInput(project?.created_at))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +68,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
       github_url: githubUrl || null,
       live_url: liveUrl || null,
       content: content || null,
+      created_at: new Date(createdAt).toISOString(),
     })
   }
 
@@ -108,6 +115,11 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="createdAt">Project Date</Label>
+        <Input id="createdAt" type="date" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} />
       </div>
 
       <div className="space-y-2">

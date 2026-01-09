@@ -34,7 +34,14 @@ export async function getProject(id: string) {
 
 export async function createProject(project: ProjectInsert) {
   const supabase = await createClient()
-  const { data, error } = await supabase.from("projects").insert(project).select().single()
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      ...project,
+      created_at: project.created_at || new Date().toISOString(),
+    })
+    .select()
+    .single()
 
   if (error) throw error
   revalidatePath("/")
@@ -45,7 +52,10 @@ export async function updateProject(id: string, project: ProjectUpdate) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("projects")
-    .update({ ...project, updated_at: new Date().toISOString() })
+    .update({
+      ...project,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .select()
     .single()
