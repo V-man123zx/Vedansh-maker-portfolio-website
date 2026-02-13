@@ -34,10 +34,30 @@ export async function getProject(id: string) {
 
 export async function createProject(project: ProjectInsert) {
   const supabase = await createClient()
+
+  // Shift existing projects down by 1 so the new project appears first
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("id, display_order")
+    .order("display_order", { ascending: true })
+
+  if (existing && existing.length > 0) {
+    await Promise.all(
+      existing.map((p) =>
+        supabase
+          .from("projects")
+          .update({ display_order: (p.display_order ?? 0) + 1 })
+          .eq("id", p.id)
+      )
+    )
+  }
+
+  const { display_order: _ignored, ...rest } = project as ProjectInsert & { display_order?: number }
   const { data, error } = await supabase
     .from("projects")
     .insert({
-      ...project,
+      ...rest,
+      display_order: 0,
       created_at: project.created_at || new Date().toISOString(),
     })
     .select()

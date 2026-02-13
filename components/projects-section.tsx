@@ -15,7 +15,9 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   rectSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { CategoryTabs } from "./category-tabs"
 import { ProjectCard } from "./project-card"
 import { AddProjectDialog } from "./add-project-dialog"
@@ -25,6 +27,36 @@ import { reorderProjects } from "@/lib/actions/projects"
 import { checkAdminAuth } from "@/lib/admin-auth"
 import { AdminAuthDialog } from "./admin-auth-dialog"
 import type { Project } from "@/types/project"
+
+function SortableProjectCard({ project }: { project: Project }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: project.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <ProjectCard
+      project={project}
+      isReordering
+      sortableProps={{
+        ref: setNodeRef,
+        style,
+        attributes: attributes as Record<string, unknown>,
+        listeners: listeners as Record<string, unknown> | undefined,
+        isDragging,
+      }}
+    />
+  )
+}
 
 interface ProjectsSectionProps {
   initialProjects: Project[]
@@ -112,14 +144,6 @@ export function ProjectsSection({ initialProjects }: ProjectsSectionProps) {
     setIsReordering(false)
   }
 
-  const projectGrid = (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {filteredProjects.map((project) => (
-        <ProjectCard key={project.id} project={project} isReordering={isReordering} />
-      ))}
-    </div>
-  )
-
   return (
     <section className="px-6 py-12">
       <div className="mx-auto max-w-7xl">
@@ -178,7 +202,7 @@ export function ProjectsSection({ initialProjects }: ProjectsSectionProps) {
 
         {isReordering && (
           <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
-            Drag and drop the project cards to rearrange their display order. Click "Save Order" when done.
+            Drag and drop the project cards to rearrange their display order. Click &quot;Save Order&quot; when done.
           </div>
         )}
 
@@ -193,11 +217,19 @@ export function ProjectsSection({ initialProjects }: ProjectsSectionProps) {
                 items={filteredProjects.map((p) => p.id)}
                 strategy={rectSortingStrategy}
               >
-                {projectGrid}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredProjects.map((project) => (
+                    <SortableProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
               </SortableContext>
             </DndContext>
           ) : (
-            projectGrid
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
           )
         ) : (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">

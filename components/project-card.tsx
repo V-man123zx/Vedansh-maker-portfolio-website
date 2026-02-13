@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,30 +17,21 @@ import { checkAdminAuth } from "@/lib/admin-auth"
 interface ProjectCardProps {
   project: Project
   isReordering?: boolean
+  sortableProps?: {
+    ref: (node: HTMLElement | null) => void
+    style: React.CSSProperties
+    attributes: Record<string, unknown>
+    listeners: Record<string, unknown> | undefined
+    isDragging: boolean
+  }
 }
 
-export function ProjectCard({ project, isReordering = false }: ProjectCardProps) {
+export function ProjectCard({ project, isReordering = false, sortableProps }: ProjectCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<"edit" | "delete" | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: project.id, disabled: !isReordering })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : undefined,
-  }
 
   const statusColors = {
     "in-progress": "bg-amber-500/10 text-amber-600 border-amber-500/20",
@@ -84,18 +73,20 @@ export function ProjectCard({ project, isReordering = false }: ProjectCardProps)
     }
   }
 
+  const isDragging = sortableProps?.isDragging ?? false
+
   return (
     <>
       <Card
-        ref={setNodeRef}
-        style={style}
+        ref={sortableProps?.ref}
+        style={sortableProps?.style}
         className={`group overflow-hidden transition-all ${
           isReordering
             ? "cursor-grab ring-2 ring-primary/20 active:cursor-grabbing"
             : "cursor-pointer hover:shadow-lg"
-        } ${isDragging ? "shadow-2xl" : ""}`}
+        } ${isDragging ? "opacity-50 shadow-2xl" : ""}`}
         onClick={isReordering ? undefined : () => setIsDetailOpen(true)}
-        {...(isReordering ? { ...attributes, ...listeners } : {})}
+        {...(isReordering && sortableProps ? { ...sortableProps.attributes, ...sortableProps.listeners } : {})}
       >
         <CardHeader className="relative p-0">
           <div className="relative aspect-video overflow-hidden bg-muted">
@@ -185,7 +176,7 @@ export function ProjectCard({ project, isReordering = false }: ProjectCardProps)
           )}
         </CardContent>
 
-        {!isReordering && (
+        {!isReordering && (project.github_url || (project.live_url && project.live_url.length > 0)) && (
           <CardFooter className="flex flex-wrap gap-2 border-t p-4" onClick={(e) => e.stopPropagation()}>
             {project.github_url && (
               <Button variant="outline" size="sm" asChild>
