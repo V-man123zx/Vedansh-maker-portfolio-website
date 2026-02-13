@@ -151,7 +151,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           )}
         </CardContent>
 
-        <CardFooter className="flex gap-2 border-t p-4" onClick={(e) => e.stopPropagation()}>
+        <CardFooter className="flex flex-wrap gap-2 border-t p-4" onClick={(e) => e.stopPropagation()}>
           {project.github_url && (
             <Button variant="outline" size="sm" asChild>
               <a href={project.github_url} target="_blank" rel="noopener noreferrer">
@@ -160,14 +160,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </a>
             </Button>
           )}
-          {project.live_url && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={project.live_url} target="_blank" rel="noopener noreferrer">
+          {project.live_url && project.live_url.length > 0 && project.live_url.map((url, index) => (
+            <Button key={index} variant="outline" size="sm" asChild>
+              <a href={url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Live
+                {project.live_url && project.live_url.length > 1 ? `Live ${index + 1}` : "Live"}
               </a>
             </Button>
-          )}
+          ))}
         </CardFooter>
       </Card>
 

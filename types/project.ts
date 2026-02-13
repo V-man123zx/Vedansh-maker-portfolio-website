@@ -8,7 +8,7 @@ export interface Project {
   technologies: string[]
   status: "in-progress" | "completed" | "planned"
   github_url: string | null
-  live_url: string | null
+  live_url: string[] | null
   content: string | null
   created_at: string
   updated_at: string
