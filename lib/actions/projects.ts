@@ -6,7 +6,7 @@ import type { ProjectInsert, ProjectUpdate } from "@/types/project"
 
 export async function getProjects() {
   const supabase = await createClient()
-  const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
+  const { data, error } = await supabase.from("projects").select("*").order("display_order", { ascending: true })
 
   if (error) throw error
   return data
@@ -18,7 +18,7 @@ export async function getProjectsByCategory(category: string) {
     .from("projects")
     .select("*")
     .eq("category", category)
-    .order("created_at", { ascending: false })
+    .order("display_order", { ascending: true })
 
   if (error) throw error
   return data
@@ -70,6 +70,23 @@ export async function deleteProject(id: string) {
   const { error } = await supabase.from("projects").delete().eq("id", id)
 
   if (error) throw error
+  revalidatePath("/")
+}
+
+export async function reorderProjects(orderedIds: string[]) {
+  const supabase = await createClient()
+
+  const updates = orderedIds.map((id, index) =>
+    supabase
+      .from("projects")
+      .update({ display_order: index, updated_at: new Date().toISOString() })
+      .eq("id", id)
+  )
+
+  const results = await Promise.all(updates)
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
+
   revalidatePath("/")
 }
 

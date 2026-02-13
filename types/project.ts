@@ -10,6 +10,7 @@ export interface Project {
   github_url: string | null
   live_url: string[] | null
   content: string | null
+  display_order: number
   created_at: string
   updated_at: string
 }
