@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Github, ExternalLink, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { Github, ExternalLink, MoreVertical, Pencil, Trash2, GripVertical } from "lucide-react"
 import type { Project } from "@/types/project"
 import { deleteProject } from "@/lib/actions/projects"
 import { EditProjectDialog } from "./edit-project-dialog"
@@ -16,9 +16,17 @@ import { checkAdminAuth } from "@/lib/admin-auth"
 
 interface ProjectCardProps {
   project: Project
+  isReordering?: boolean
+  sortableProps?: {
+    ref: (node: HTMLElement | null) => void
+    style: React.CSSProperties
+    attributes: Record<string, unknown>
+    listeners: Record<string, unknown> | undefined
+    isDragging: boolean
+  }
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, isReordering = false, sortableProps }: ProjectCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isAuthOpen, setIsAuthOpen] = useState(false)
@@ -65,11 +73,20 @@ export function ProjectCard({ project }: ProjectCardProps) {
     }
   }
 
+  const isDragging = sortableProps?.isDragging ?? false
+
   return (
     <>
       <Card
-        className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg"
-        onClick={() => setIsDetailOpen(true)}
+        ref={sortableProps?.ref}
+        style={sortableProps?.style}
+        className={`group overflow-hidden transition-all ${
+          isReordering
+            ? "cursor-grab ring-2 ring-primary/20 active:cursor-grabbing"
+            : "cursor-pointer hover:shadow-lg"
+        } ${isDragging ? "opacity-50 shadow-2xl" : ""}`}
+        onClick={isReordering ? undefined : () => setIsDetailOpen(true)}
+        {...(isReordering && sortableProps ? { ...sortableProps.attributes, ...sortableProps.listeners } : {})}
       >
         <CardHeader className="relative p-0">
           <div className="relative aspect-video overflow-hidden bg-muted">
@@ -85,43 +102,51 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 <span className="text-4xl font-bold text-muted-foreground/30">{project.title.charAt(0)}</span>
               </div>
             )}
+
+            {isReordering && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                <GripVertical className="h-10 w-10 text-foreground/60" />
+              </div>
+            )}
           </div>
-          <div className="absolute right-2 top-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAdminAction("edit")
-                  }}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAdminAction("delete")
-                  }}
-                  disabled={isDeleting}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {!isReordering && (
+            <div className="absolute right-2 top-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdminAction("edit")
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAdminAction("delete")
+                    }}
+                    disabled={isDeleting}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="p-4">
@@ -151,24 +176,26 @@ export function ProjectCard({ project }: ProjectCardProps) {
           )}
         </CardContent>
 
-        <CardFooter className="flex gap-2 border-t p-4" onClick={(e) => e.stopPropagation()}>
-          {project.github_url && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={project.github_url} target="_blank" rel="noopener noreferrer">
-                <Github className="mr-2 h-4 w-4" />
-                Code
-              </a>
-            </Button>
-          )}
-          {project.live_url && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Live
-              </a>
-            </Button>
-          )}
-        </CardFooter>
+        {!isReordering && (project.github_url || (project.live_url && project.live_url.length > 0)) && (
+          <CardFooter className="flex flex-wrap gap-2 border-t p-4" onClick={(e) => e.stopPropagation()}>
+            {project.github_url && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+                  <Github className="mr-2 h-4 w-4" />
+                  Code
+                </a>
+              </Button>
+            )}
+            {project.live_url && project.live_url.length > 0 && project.live_url.map((url, index) => (
+              <Button key={index} variant="outline" size="sm" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {project.live_url && project.live_url.length > 1 ? `Live ${index + 1}` : "Live"}
+                </a>
+              </Button>
+            ))}
+          </CardFooter>
+        )}
       </Card>
 
       <EditProjectDialog project={project} open={isEditOpen} onOpenChange={setIsEditOpen} />
