@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ImageUpload } from "./image-upload"
 import { GalleryUpload } from "./gallery-upload"
+import { AIDescriptionAssistant } from "./ai-description-assistant"
 import type { Project, ProjectInsert } from "@/types/project"
 
 interface ProjectFormProps {
@@ -132,6 +133,17 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
           rows={2}
         />
       </div>
+
+      <AIDescriptionAssistant
+        title={title}
+        category={category}
+        technologies={technologies}
+        currentDescription={description}
+        onDescriptionsGenerated={(shortDesc, detailedDesc) => {
+          setDescription(shortDesc)
+          setContent(detailedDesc)
+        }}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="technologies">Technologies (comma-separated)</Label>
