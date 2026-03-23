@@ -1,12 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, X, Link, Plus, GripVertical } from "lucide-react"
+import { Upload, X, Link, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface GalleryUploadProps {
   images: string[]
@@ -18,6 +18,8 @@ export function GalleryUpload({ images, onChange, maxImages = 10 }: GalleryUploa
   const [isUploading, setIsUploading] = useState(false)
   const [mode, setMode] = useState<"upload" | "url">("upload")
   const [urlInput, setUrlInput] = useState("")
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,12 +77,50 @@ export function GalleryUpload({ images, onChange, maxImages = 10 }: GalleryUploa
     onChange(newImages)
   }
 
-  const moveImage = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= images.length) return
+  const moveImage = useCallback((fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= images.length) {
+      console.log("[v0] Gallery moveImage: invalid index, skipping", { fromIndex, toIndex, length: images.length })
+      return
+    }
+    console.log("[v0] Gallery moveImage: reordering", { fromIndex, toIndex })
     const newImages = [...images]
     const [moved] = newImages.splice(fromIndex, 1)
     newImages.splice(toIndex, 0, moved)
     onChange(newImages)
+  }, [images, onChange])
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", index.toString())
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    if (draggedIndex !== null && index !== draggedIndex) {
+      setDragOverIndex(index)
+    }
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault()
+    if (draggedIndex !== null && draggedIndex !== toIndex) {
+      console.log("[v0] Gallery reorder: moving image from index", draggedIndex, "to index", toIndex)
+      moveImage(draggedIndex, toIndex)
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   return (
@@ -106,34 +146,59 @@ export function GalleryUpload({ images, onChange, maxImages = 10 }: GalleryUploa
         </div>
       </div>
 
-      {/* Existing Images Grid */}
+      {/* Existing Images Grid with Drag & Drop */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {images.map((url, index) => (
             <div
               key={`${url}-${index}`}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-border"
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`group relative aspect-square cursor-grab overflow-hidden rounded-lg border transition-all active:cursor-grabbing ${
+                draggedIndex === index 
+                  ? "opacity-50 border-primary" 
+                  : dragOverIndex === index 
+                    ? "border-primary border-2 scale-105" 
+                    : "border-border"
+              }`}
             >
-              <Image src={url || "/placeholder.svg"} alt={`Gallery image ${index + 1}`} fill className="object-cover" />
+              <Image src={url || "/placeholder.svg"} alt={`Gallery image ${index + 1}`} fill className="object-cover pointer-events-none" />
               <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-white hover:bg-white/20"
-                  onClick={() => moveImage(index, index - 1)}
+                  onClick={(e) => { e.stopPropagation(); moveImage(index, index - 1); }}
                   disabled={index === 0}
+                  title="Move left"
                 >
-                  <GripVertical className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
                   type="button"
                   variant="destructive"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => handleRemove(index)}
+                  onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
+                  title="Remove"
                 >
                   <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-white hover:bg-white/20"
+                  onClick={(e) => { e.stopPropagation(); moveImage(index, index + 1); }}
+                  disabled={index === images.length - 1}
+                  title="Move right"
+                >
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
               {index === 0 && (
@@ -192,7 +257,7 @@ export function GalleryUpload({ images, onChange, maxImages = 10 }: GalleryUploa
         </>
       )}
 
-      <p className="text-xs text-muted-foreground">First image will be used as the project cover. Drag to reorder.</p>
+      <p className="text-xs text-muted-foreground">First image will be used as the project cover. Drag images to reorder, or use arrow buttons on hover.</p>
     </div>
   )
 }

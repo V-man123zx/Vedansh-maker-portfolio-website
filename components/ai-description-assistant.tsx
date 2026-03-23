@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mic, MicOff, Sparkles, ChevronRight, Check, Loader2 } from "lucide-react"
+import { Mic, MicOff, Sparkles, ChevronRight, Check, Loader2, RefreshCw } from "lucide-react"
 
 interface Answer {
   question: string
@@ -18,6 +18,15 @@ interface AIDescriptionAssistantProps {
   currentDescription: string
   onDescriptionsGenerated: (shortDesc: string, detailedDesc: string) => void
 }
+
+// Default fallback questions to avoid API call if not needed
+const DEFAULT_QUESTIONS = [
+  "What problem does this project solve or what is its main purpose?",
+  "What technologies and tools did you use to build it?",
+  "What were the main challenges you faced and how did you solve them?",
+  "What makes this project unique or what are you most proud of?",
+  "What did you learn and what would you do differently next time?",
+]
 
 export function AIDescriptionAssistant({
   title,
@@ -34,12 +43,35 @@ export function AIDescriptionAssistant({
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false)
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [useCustomQuestions, setUseCustomQuestions] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const questionsGeneratedRef = useRef(false)
 
-  const generateQuestions = async () => {
+  // Use default questions to minimize API calls - only fetch custom if user requests
+  const useDefaultQuestions = useCallback(() => {
+    setQuestions(DEFAULT_QUESTIONS)
+    setCurrentQuestionIndex(0)
+    setAnswers([])
+    setCurrentAnswer("")
+    setError(null)
+  }, [])
+
+  const generateQuestions = useCallback(async (forceRefresh = false) => {
+    // If we already have questions and not forcing refresh, skip API call
+    if (questions.length > 0 && !forceRefresh && questionsGeneratedRef.current) {
+      return
+    }
+
+    // Use default questions first to avoid unnecessary API call
+    if (!forceRefresh && !useCustomQuestions) {
+      useDefaultQuestions()
+      return
+    }
+
     setIsLoadingQuestions(true)
     setError(null)
     try {
@@ -56,12 +88,15 @@ export function AIDescriptionAssistant({
       setCurrentQuestionIndex(0)
       setAnswers([])
       setCurrentAnswer("")
+      questionsGeneratedRef.current = true
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate questions")
+      // Fall back to default questions on error
+      useDefaultQuestions()
     } finally {
       setIsLoadingQuestions(false)
     }
-  }
+  }, [title, category, technologies, currentDescription, questions.length, useCustomQuestions, useDefaultQuestions])
 
   const startRecording = async () => {
     try {
@@ -97,6 +132,13 @@ export function AIDescriptionAssistant({
   }
 
   const transcribeAudio = async (audioBlob: Blob) => {
+    // Skip transcription if blob is too small (likely empty/noise)
+    if (audioBlob.size < 1000) {
+      setError("Recording too short. Please speak for at least a second.")
+      return
+    }
+
+    setIsTranscribing(true)
     try {
       // Convert to base64 for Gemini
       const arrayBuffer = await audioBlob.arrayBuffer()
@@ -113,9 +155,13 @@ export function AIDescriptionAssistant({
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
 
-      setCurrentAnswer((prev) => (prev ? prev + " " + data.text : data.text))
+      if (data.text && data.text.trim()) {
+        setCurrentAnswer((prev) => (prev ? prev + " " + data.text : data.text))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to transcribe audio")
+    } finally {
+      setIsTranscribing(false)
     }
   }
 
@@ -169,7 +215,7 @@ export function AIDescriptionAssistant({
         variant="outline"
         onClick={() => {
           setIsOpen(true)
-          generateQuestions()
+          useDefaultQuestions() // Use defaults immediately, no API call
         }}
         className="gap-2"
       >
@@ -197,10 +243,27 @@ export function AIDescriptionAssistant({
         {isLoadingQuestions ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">Generating questions...</span>
+            <span className="ml-2 text-sm text-muted-foreground">Generating custom questions...</span>
           </div>
         ) : questions.length > 0 ? (
           <>
+            {/* Option to generate custom AI questions */}
+            {!questionsGeneratedRef.current && answers.length === 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setUseCustomQuestions(true)
+                  generateQuestions(true)
+                }}
+                className="mb-2 gap-1 text-xs"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Generate AI-tailored questions for this project
+              </Button>
+            )}
+
             {/* Progress indicator */}
             <div className="flex gap-1">
               {questions.map((_, idx) => (
@@ -229,9 +292,10 @@ export function AIDescriptionAssistant({
                   <Textarea
                     value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
-                    placeholder="Type your answer or use the microphone..."
+                    placeholder={isTranscribing ? "Transcribing..." : "Type your answer or use the microphone..."}
                     rows={3}
                     className="pr-12"
+                    disabled={isTranscribing}
                   />
                   <Button
                     type="button"
@@ -239,8 +303,15 @@ export function AIDescriptionAssistant({
                     variant={isRecording ? "destructive" : "ghost"}
                     className="absolute bottom-2 right-2"
                     onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isTranscribing}
                   >
-                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {isTranscribing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isRecording ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
 
