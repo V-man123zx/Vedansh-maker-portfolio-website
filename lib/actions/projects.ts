@@ -6,7 +6,7 @@ import type { ProjectInsert, ProjectUpdate } from "@/types/project"
 
 export async function getProjects() {
   const supabase = await createClient()
-  const { data, error } = await supabase.from("projects").select("*").order("display_order", { ascending: true })
+  const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
   if (error) throw error
   return data
@@ -18,7 +18,7 @@ export async function getProjectsByCategory(category: string) {
     .from("projects")
     .select("*")
     .eq("category", category)
-    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false })
 
   if (error) throw error
   return data
@@ -34,30 +34,10 @@ export async function getProject(id: string) {
 
 export async function createProject(project: ProjectInsert) {
   const supabase = await createClient()
-
-  // Shift existing projects down by 1 so the new project appears first
-  const { data: existing } = await supabase
-    .from("projects")
-    .select("id, display_order")
-    .order("display_order", { ascending: true })
-
-  if (existing && existing.length > 0) {
-    await Promise.all(
-      existing.map((p) =>
-        supabase
-          .from("projects")
-          .update({ display_order: (p.display_order ?? 0) + 1 })
-          .eq("id", p.id)
-      )
-    )
-  }
-
-  const { display_order: _ignored, ...rest } = project as ProjectInsert & { display_order?: number }
   const { data, error } = await supabase
     .from("projects")
     .insert({
-      ...rest,
-      display_order: 0,
+      ...project,
       created_at: project.created_at || new Date().toISOString(),
     })
     .select()
@@ -90,23 +70,6 @@ export async function deleteProject(id: string) {
   const { error } = await supabase.from("projects").delete().eq("id", id)
 
   if (error) throw error
-  revalidatePath("/")
-}
-
-export async function reorderProjects(orderedIds: string[]) {
-  const supabase = await createClient()
-
-  const updates = orderedIds.map((id, index) =>
-    supabase
-      .from("projects")
-      .update({ display_order: index, updated_at: new Date().toISOString() })
-      .eq("id", id)
-  )
-
-  const results = await Promise.all(updates)
-  const failed = results.find((r) => r.error)
-  if (failed?.error) throw failed.error
-
   revalidatePath("/")
 }
 

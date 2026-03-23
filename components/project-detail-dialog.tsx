@@ -107,8 +107,8 @@ export function ProjectDetailDialog({ project, open, onOpenChange }: ProjectDeta
           </div>
 
           {/* Links */}
-          {(project.github_url || (project.live_url && project.live_url.length > 0)) && (
-            <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+          {(project.github_url || project.live_url) && (
+            <div className="flex gap-3 border-t border-border pt-4">
               {project.github_url && (
                 <Button variant="outline" asChild>
                   <a href={project.github_url} target="_blank" rel="noopener noreferrer">
@@ -117,14 +117,14 @@ export function ProjectDetailDialog({ project, open, onOpenChange }: ProjectDeta
                   </a>
                 </Button>
               )}
-              {project.live_url && project.live_url.length > 0 && project.live_url.map((url, index) => (
-                <Button key={index} asChild>
-                  <a href={url} target="_blank" rel="noopener noreferrer">
+              {project.live_url && (
+                <Button asChild>
+                  <a href={project.live_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    {project.live_url && project.live_url.length > 1 ? `View Live ${index + 1}` : "View Live"}
+                    View Live
                   </a>
                 </Button>
-              ))}
+              )}
             </div>
           )}
         </div>

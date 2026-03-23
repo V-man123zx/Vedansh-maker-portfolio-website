@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ImageUpload } from "./image-upload"
 import { GalleryUpload } from "./gallery-upload"
-import { Plus, X } from "lucide-react"
+import { AIDescriptionAssistant } from "./ai-description-assistant"
 import type { Project, ProjectInsert } from "@/types/project"
 
 interface ProjectFormProps {
@@ -47,9 +47,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
     (project?.status as "in-progress" | "completed" | "planned") || "in-progress",
   )
   const [githubUrl, setGithubUrl] = useState(project?.github_url || "")
-  const [liveUrls, setLiveUrls] = useState<string[]>(
-    project?.live_url && project.live_url.length > 0 ? project.live_url : [""]
-  )
+  const [liveUrl, setLiveUrl] = useState(project?.live_url || "")
   const [content, setContent] = useState(project?.content || "")
   const [createdAt, setCreatedAt] = useState(formatDateForInput(project?.created_at))
 
@@ -69,7 +67,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
       technologies: techArray,
       status,
       github_url: githubUrl || null,
-      live_url: liveUrls.filter((u) => u.trim() !== "").length > 0 ? liveUrls.filter((u) => u.trim() !== "") : null,
+      live_url: liveUrl || null,
       content: content || null,
       created_at: new Date(createdAt).toISOString(),
     })
@@ -136,6 +134,17 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
         />
       </div>
 
+      <AIDescriptionAssistant
+        title={title}
+        category={category}
+        technologies={technologies}
+        currentDescription={description}
+        onDescriptionsGenerated={(shortDesc, detailedDesc) => {
+          setDescription(shortDesc)
+          setContent(detailedDesc)
+        }}
+      />
+
       <div className="space-y-2">
         <Label htmlFor="technologies">Technologies (comma-separated)</Label>
         <Input
@@ -150,55 +159,27 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading }: ProjectF
 
       <GalleryUpload images={galleryImages} onChange={setGalleryImages} maxImages={10} />
 
-      <div className="space-y-2">
-        <Label htmlFor="githubUrl">GitHub URL</Label>
-        <Input
-          id="githubUrl"
-          type="url"
-          value={githubUrl}
-          onChange={(e) => setGithubUrl(e.target.value)}
-          placeholder="https://github.com/..."
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Live/Demo/Video URLs</Label>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          {liveUrls.map((url, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                type="url"
-                value={url}
-                onChange={(e) => {
-                  const updated = [...liveUrls]
-                  updated[index] = e.target.value
-                  setLiveUrls(updated)
-                }}
-                placeholder="https://..."
-              />
-              {liveUrls.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={() => setLiveUrls(liveUrls.filter((_, i) => i !== index))}
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Remove URL</span>
-                </Button>
-              )}
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setLiveUrls([...liveUrls, ""])}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add another link
-          </Button>
+          <Label htmlFor="githubUrl">GitHub URL</Label>
+          <Input
+            id="githubUrl"
+            type="url"
+            value={githubUrl}
+            onChange={(e) => setGithubUrl(e.target.value)}
+            placeholder="https://github.com/..."
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="liveUrl">Live/Demo URL</Label>
+          <Input
+            id="liveUrl"
+            type="url"
+            value={liveUrl}
+            onChange={(e) => setLiveUrl(e.target.value)}
+            placeholder="https://..."
+          />
         </div>
       </div>
 
