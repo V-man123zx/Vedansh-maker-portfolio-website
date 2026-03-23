@@ -38,6 +38,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
 
     setIsUploading(true)
     try {
+      console.log("[v0] Starting image upload:", file.name, file.size, file.type)
       const formData = new FormData()
       formData.append("file", file)
 
@@ -46,16 +47,22 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
         body: formData,
       })
 
+      console.log("[v0] Upload response status:", response.status)
       const result = await response.json()
+      console.log("[v0] Upload response body:", result)
 
       if (response.ok && result.url) {
+        console.log("[v0] Upload successful:", result.url)
         onChange(result.url)
       } else {
-        alert(result.error || "Failed to upload image")
+        const errorMsg = result.error || "Failed to upload image"
+        console.error("[v0] Upload error:", errorMsg)
+        alert(errorMsg)
       }
     } catch (error) {
-      console.error("Upload failed:", error)
-      alert("Failed to upload image")
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error("[v0] Upload failed:", errorMsg)
+      alert(`Failed to upload image: ${errorMsg}`)
     } finally {
       setIsUploading(false)
     }

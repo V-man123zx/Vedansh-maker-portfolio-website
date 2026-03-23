@@ -8,15 +8,13 @@ export interface Project {
   technologies: string[]
   status: "in-progress" | "completed" | "planned"
   github_url: string | null
-  live_url: string[] | null
+  live_url: string | null
   content: string | null
-  display_order: number
   created_at: string
   updated_at: string
 }
 
-export type ProjectInsert = Omit<Project, "id" | "updated_at" | "display_order"> & {
+export type ProjectInsert = Omit<Project, "id" | "updated_at"> & {
   created_at?: string
-  display_order?: number
 }
 export type ProjectUpdate = Partial<ProjectInsert>

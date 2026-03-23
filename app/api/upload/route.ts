@@ -36,18 +36,20 @@ export async function POST(request: Request) {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text()
-      console.log("[v0] Supabase upload error:", errorText)
-      return NextResponse.json({ error: errorText }, { status: 500 })
+      console.log("[v0] Supabase upload error status:", uploadResponse.status)
+      console.log("[v0] Supabase upload error body:", errorText)
+      return NextResponse.json({ error: `Upload failed: ${errorText}` }, { status: 500 })
     }
 
-    const uploadData = await uploadResponse.json()
-    console.log("[v0] Upload successful:", uploadData)
+    // Supabase Storage returns text/plain on success, not JSON
+    const responseText = await uploadResponse.text()
+    console.log("[v0] Upload successful. Response:", responseText)
 
     // Construct public URL
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/project-images/${filePath}`
 
     console.log("[v0] Public URL:", publicUrl)
-    return NextResponse.json({ url: publicUrl })
+    return NextResponse.json({ url: publicUrl, success: true })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Upload failed"
     console.log("[v0] Upload catch error:", errorMessage)
