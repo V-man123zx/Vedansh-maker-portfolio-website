@@ -6,9 +6,20 @@ import type { ProjectInsert, ProjectUpdate } from "@/types/project"
 
 export async function getProjects() {
   const supabase = await createClient()
+  
+  console.log("[v0] Fetching projects from Supabase...")
+  console.log("[v0] SUPABASE_URL set:", !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+  console.log("[v0] SUPABASE_ANON_KEY set:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  console.log("[v0] SUPABASE_URL value:", process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...")
+  
   const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false })
 
-  if (error) throw error
+  if (error) {
+    console.error("[v0] Supabase error:", JSON.stringify(error))
+    throw error
+  }
+  
+  console.log("[v0] Projects fetched successfully, count:", data?.length ?? 0)
   return data
 }
 
