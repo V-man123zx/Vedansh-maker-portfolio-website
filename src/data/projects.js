@@ -4,7 +4,8 @@ import MEDIA from "./media.json";
 
 const GH = "GitHub";
 const VIDEO_CAPS = {
-  drone: ["Takeoff", "Hover"], hand: ["Finger test"], poker: ["Dealing"], droneassist: ["Glove control"],
+  drone: ["Takeoff", "Hover"], hexplorer: ["Following the yellow box", "Voice-controlled walk", "Learning to dance"], poker: ["Dealing"],
+  drink: ["Pouring", "HMI control"], droneassist: ["Glove control"], mechmind: ["Tray delivery by Pudu T600", "Cell running"],
   drilltap: ["Cell running", "Cell running · 2"], tripteron: ["Motion test"], hydro: ["The system"], roomba: ["Driving"], gib: ["Gameplay"]
 };
 const P = (slug, title, cat, wip, model, summary, detail, spec, tags, links = []) => ({
