@@ -430,14 +430,14 @@ export function createShowroom(canvas, opts) {
   const hop = d => { if (tween) queued = d; else flyTo(stopFrom(sCur, d)); };
   const inScroller = e => e.target.closest && e.target.closest(".dir-list, .lb");
 
-  // a wheel or trackpad gesture is one hop; its trailing momentum is ignored. Rolling the wheel
-  // forward (away from you, deltaY < 0) flies forward into the screen.
+  // a wheel or trackpad gesture is one hop; its trailing momentum is ignored. Scrolling down flies
+  // forward into the screen, scrolling up flies back.
   const onWheel = e => {
     if (e.ctrlKey || inScroller(e)) return;
     e.preventDefault();
     const now = performance.now(), fresh = now - lastWheel > 220; lastWheel = now;
     if (!fresh || Math.abs(e.deltaY) < 1) return;
-    const d = -Math.sign(e.deltaY);
+    const d = Math.sign(e.deltaY);
     if (!tween) hop(d); else if ((now - tween.t0) / tween.dur > .4) queued = d;
   };
   const onTouchStart = e => { touch0 = inScroller(e) ? null : { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
@@ -533,7 +533,7 @@ export function createShowroom(canvas, opts) {
       ps.pad.material.emissive.setHex(on ? 0x8a5a00 : 0x000000); ps.pool.material.opacity = on ? .3 : .08;
       ps.idle += dt; if (!drag && ps.idle > 2 && !reduce) ps.yaw += dt * .3;
       ps.spin.rotation.set(ps.model.tilt * .5 + ps.pitch, ps.yaw, 0);
-      ps.model.tick(dt, (now / 9000 + ps.k * .37) % 1, reduce); // assembles and explodes on a slow loop while you look
+      ps.model.tick(dt, (now / 9000 + ps.k * .37) % 1, reduce); // plays the model's own motion, if its CAD has one
       if (Math.abs(sCur - (S.a + S.b) / 2) < S.hold / 2 + .25) nearProj = ps;
       if (near) { ps.frames.forEach(fr => fr.load()); ps.loadCad(); }
       const play = sCur > S.a - 1.1 && sCur < S.b + .9;

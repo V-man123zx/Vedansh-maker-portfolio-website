@@ -1,12 +1,17 @@
 // The write-up shared by showroom panels and project pages.
-export function Meta({ p, i }) {
+export function Meta({ p, i, n }) {
   return (
     <div className="meta">
-      <span className="num">{String(i + 1).padStart(2, "0")} / 23</span>
+      <span className="num">{String(i + 1).padStart(2, "0")} / {n}</span>
       <span><span className="led" />{p.status.toUpperCase()}</span>
       <span>{p.cat.toUpperCase()}</span>
     </div>
   );
+}
+
+// a gold badge for a competition win
+export function Award({ p }) {
+  return p.award ? <div className="award"><span aria-hidden="true">🏆</span> {p.award.toUpperCase()}</div> : null;
 }
 
 export function Detail({ p }) {

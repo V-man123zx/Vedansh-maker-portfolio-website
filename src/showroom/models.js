@@ -27,19 +27,14 @@ export const MAT = {
 };
 const edgeMat = new THREE.LineBasicMaterial({ color: 0x050d0a, transparent: true, opacity: .45 });
 
+// `mixer` plays the motion baked into the CAD export (the arm stacking cups, the tripteron moving);
+// with reduced motion the model holds its first frame
 function finish(root, size, opts = {}) {
-  root.traverse(o => { if (o.isGroup && o.userData.dir) o.userData.base = o.position.clone(); });
   const parts = []; root.traverse(o => { if (o.isMesh && o.userData.part) parts.push(o); });
-  const anim = opts.anim || (() => {});
-  const amount = opts.explode ?? 1;
-  let t = 0;
+  const mixer = opts.mixer;
   return {
     root, size, parts, tilt: opts.tilt ?? .45,
-    tick(dt, p, reduce) {
-      t += dt; if (!reduce) anim(t, dt);
-      const e = reduce ? .25 * amount : Math.max(0, Math.sin(p * Math.PI) - .25) * amount;
-      root.traverse(o => { if (o.userData.base) o.position.copy(o.userData.base).addScaledVector(o.userData.dir, e); });
-    }
+    tick(dt, p, reduce) { if (mixer && !reduce) mixer.update(dt); }
   };
 }
 
@@ -49,7 +44,7 @@ export const emptyModel = () => finish(new THREE.Group(), 1);
 // CAD names that say nothing about the part ("Body3", "Component1", "SOLID (2)")
 const GENERIC_PART = /^(body|component|solid|compound|part)\s*\(?\d*\)?$/i;
 
-// Load a CAD export (.glb/.gltf) as a model the stop can spin, explode and label.
+// Load a CAD export (.glb/.gltf) as a model the stop can spin, animate and label.
 // `title` labels parts whose CAD names are generic.
 export function loadCad(url, title = "Part") {
   return new GLTFLoader().loadAsync(url).then(gltf => {
@@ -68,12 +63,14 @@ export function loadCad(url, title = "Part") {
       o.userData.mat = o.material; parts.push(o);
       // outline sharp edges like the CAD view, unless the model is too dense for it
       if (tris < 150000) o.add(new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 30), edgeMat));
-      const mc = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()).sub(c);
-      o.userData.dir = mc.lengthSq() > 1e-6 ? mc.normalize().multiplyScalar(Math.max(s.x, s.y, s.z) * .12 / Math.max(1e-6, scene.scale.x)) : new THREE.Vector3();
-      o.userData.base = o.position.clone();
     });
+    let mixer = null;
+    if (gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(scene);
+      gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+    }
     // flat things (boards, plates) tip toward the camera so you see their face, not their edge
     const flat = s.y < .35 * Math.max(s.x, s.z);
-    return finish(root, Math.max(s.x, s.y, s.z) / 2, { tilt: flat ? 1.9 : .3, explode: 1 });
+    return finish(root, Math.max(s.x, s.y, s.z) / 2, { tilt: flat ? 1.9 : .3, mixer });
   });
 }

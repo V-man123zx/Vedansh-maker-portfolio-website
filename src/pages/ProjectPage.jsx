@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { PROJECTS, PROFILE, bySlug } from "../data/projects.js";
+import { PROJECTS, PROFILE, FEATURED, bySlug } from "../data/projects.js";
 import TopBar from "../components/TopBar.jsx";
 import Lightbox from "../components/Lightbox.jsx";
-import { Meta, Detail, Spec, Tags, Links } from "../components/ProjectText.jsx";
+import { Meta, Award, Detail, Spec, Tags, Links } from "../components/ProjectText.jsx";
 
 export default function ProjectPage() {
   const { slug } = useParams();
@@ -23,10 +23,13 @@ export default function ProjectPage() {
     <div className="page">
       <TopBar />
       <main className="wrap project">
-        <Link className="back" to={`/?at=${p.slug}`}>← See it in the showroom</Link>
+        {FEATURED.includes(p)
+          ? <Link className="back" to={`/?at=${p.slug}`}>← See it in the showroom</Link>
+          : <Link className="back" to="/projects">← All projects</Link>}
         <div className="project-top">
           <div className="project-txt">
-            <Meta p={p} i={i} />
+            <Meta p={p} i={i} n={PROJECTS.length} />
+            <Award p={p} />
             <h1>{p.title}</h1>
             <p className="summary">{p.summary}</p>
             <Detail p={p} />

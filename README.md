@@ -16,11 +16,11 @@ npm run build    # production build in dist/
 
 | Path | What |
 | --- | --- |
-| `src/data/projects.js` | Every project's text, links and CAD, in showroom order |
+| `src/data/projects.js` | Every project's text, links and CAD; `FEATURED` picks the showroom's projects |
 | `src/data/media.json` | Photo and video list per project (files in `public/m/`) |
 | `src/showroom/engine.js` | The Three.js world: stops, wire, camera rail, scroll timeline |
 | `src/showroom/models.js` | The `.glb` CAD loader |
-| `src/pages/` | Showroom, project page, all-projects list |
+| `src/pages/` | Showroom, phone home page (`MobileHome`), project page, all-projects list |
 
 ## Adding the real CAD
 
@@ -32,4 +32,9 @@ The model is centered and scaled to fit its stage automatically, and its parts s
 
 ## Adding a project
 
-Add an entry to `PROJECTS` in `src/data/projects.js` and its media to `media.json`. The showroom lays out a new stop for it automatically.
+Add an entry to `PROJECTS` in `src/data/projects.js` and its media to `media.json`. It shows up on `/projects` straight away; add its slug to `FEATURED` to give it a showroom stop (laid out automatically) and a card on the phone home page.
+
+## Model credits
+
+- The Yaskawa HC10 in the MechMind cell (`public/cad/mechmind.glb`) uses the visual meshes and kinematics from ROS-Industrial's [`motoman_hc10_support`](https://github.com/ros-industrial/motoman/tree/kinetic-devel/motoman_hc10_support) package (BSD).
+- The SO-101 arm in Skillsmith (`public/cad/skillsmith.glb`) comes from Google DeepMind's [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie/tree/main/robotstudio_so101) (Apache 2.0).
